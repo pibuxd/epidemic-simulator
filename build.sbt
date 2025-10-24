@@ -35,10 +35,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "EpidemicSimulator",
     libraryDependencies ++= Seq(
-			"org.typelevel" %% "cats-core" % "2.13.0",
-			"org.typelevel" %% "cats-effect" % "3.6.3",
-      //Test dependencies
-      "org.scalameta" %% "munit" % "1.1.1" % Test
+      "org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0"
     ),
     scalacOptions ++= standardOptions ++ scala3Options
   )
