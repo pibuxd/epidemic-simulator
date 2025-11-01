@@ -25,8 +25,9 @@ class BasicField(x: Int, y: Int, neighbour_layers: Int) extends Field {
   }
 
   override def infect_neighbours(): Unit = {
+    if (infected_number(0) == 0) return
     val futures = (1 until neighbour_layers).map { l =>
-      Future (neighbours(l).foreach(_.infected_number(l) += 1))
+      Future (neighbours(l).foreach(_.infected_number(l) += infected_number(0)))
     }
     Await.result(Future.sequence(futures), Duration.Inf)
   }
