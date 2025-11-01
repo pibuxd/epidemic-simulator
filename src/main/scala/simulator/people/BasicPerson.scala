@@ -10,7 +10,7 @@ class BasicPerson(start_x: Int, start_y: Int, start_infected: Boolean, board: Bo
   infected = start_infected
 
   private def current_field() = {
-    board.fields{position._1}{position._2}
+    board.fields(position._1)(position._2)
   }
 
   current_field().check_in(this)
@@ -20,8 +20,8 @@ class BasicPerson(start_x: Int, start_y: Int, start_infected: Boolean, board: Bo
   }
 
   override def make_step(): Unit = {
-    val options = current_field().neighbours{1}
-    position = options{Random.nextInt(options.size)}.get_position()
+    val options = current_field().neighbours(1)
+    position = options(Random.nextInt(options.size)).get_position()
     current_field().check_in(this)
   }
 
