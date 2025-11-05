@@ -8,3 +8,5 @@ project/
 .idea/
 .DS_Store
 .bsp/
+.vscode
+.metals
