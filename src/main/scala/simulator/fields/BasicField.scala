@@ -2,55 +2,51 @@ package simulator.fields
 
 import simulator.Board
 import simulator.people.*
+import simulator.disease.Disease
 
-import scala.concurrent.*
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.*
-import scala.util.Try
-
-class BasicField(x: Int, y: Int, neighbour_layers: Int) extends Field {
+class BasicField(x: Int, y: Int) extends Field {
   override protected val position: (Int, Int) = (x, y)
-  var infected_number: Array[Int] = Array.ofDim(neighbour_layers+1)
-  override val neighbours: Array[IndexedSeq[Field]] = Array.ofDim(neighbour_layers+1)
-
+  
+  var local_infected_count: Int = 0  
+  
   override def clear(): Unit = {
     inhabitants = Seq.empty
-    infected_number = Array.ofDim(neighbour_layers+1)
-    for (i <- 0 until neighbour_layers) infected_number(i) = 0
+    local_infected_count = 0
   }
   
   override def check_in(person: Person): Unit = {
-    if (person.infected) infected_number(0) += 1
-    inhabitants = inhabitants:+ person
+    if (person.infected) local_infected_count += 1
+    inhabitants = inhabitants :+ person
   }
-
-  override def infect_neighbours(): Unit = {
-    if (infected_number(0) == 0) return
-    val futures = (1 until neighbour_layers).map { l =>
-      Future (neighbours(l).foreach(_.infected_number(l) += infected_number(0)))
+  
+  override def infect_inhabitants(infection_probability: Double): Unit = {
+    inhabitants.foreach { person =>
+      if (!person.infected) {
+        if (scala.util.Random.nextDouble() < infection_probability) {
+          person.infected = true
+        }
+      }
     }
-    Await.result(Future.sequence(futures), Duration.Inf)
   }
-
-//  override def infect_inhabitants(): Unit 
-    //...
-//  }
-
-
-  override def calculate_neighbours(board: Board, layer: Int): Unit = {
-    val nearest_neighbours: Seq[(Int, Int)] = Seq(
+  
+  def get_direct_neighbours(board: Board): Seq[Field] = {
+    val offsets = Seq(
       (0, 1),
       (0, -1),
       (1, 0),
       (-1, 0),
-      if (x%2 == 0) (-1, -1) else (-1,1),
-      if (x%2 == 0) (1, -1) else (1,1)
+      if (x % 2 == 0) (-1, -1) else (-1, 1),
+      if (x % 2 == 0) (1, -1) else (1, 1)
     )
-    layer match {
-      case 0 => neighbours(0) = IndexedSeq(this)
-      case 1 => neighbours(1) = nearest_neighbours.flatMap((i,j) => Try(board.fields(x+i)(y+j)).toOption).toIndexedSeq
-      case _ => neighbours(layer) = (neighbours(layer - 1).flatMap(n => n.neighbours (1)).toSet -- neighbours(0) -- neighbours(1)).toIndexedSeq
+    
+    offsets.flatMap { case (dx, dy) =>
+      val nx = x + dx
+      val ny = y + dy
+      if (nx >= 0 && nx < board.fields.length && ny >= 0 && ny < board.fields(0).length) {
+        Some(board.fields(nx)(ny))
+      } else {
+        None
+      }
     }
   }
-
 }
