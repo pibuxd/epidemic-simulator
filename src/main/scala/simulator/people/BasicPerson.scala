@@ -16,7 +16,7 @@ class BasicPerson(start_x: Int, start_y: Int, start_infected: Boolean, board: Bo
   current_field().check_in(this)
 
   override def make_step(): Unit = {
-    val options = current_field().get_direct_neighbours(board)
+    val options = current_field().neighbours(1)
     if (options.nonEmpty) {
       position = options(Random.nextInt(options.size)).get_position()
       current_field().check_in(this)

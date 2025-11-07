@@ -3,11 +3,13 @@ package simulator.fields
 import simulator.Board
 import simulator.people.*
 import simulator.disease.Disease
+import scala.util.Try
 
-class BasicField(x: Int, y: Int) extends Field {
+class BasicField(x: Int, y: Int, neighbour_layers: Int) extends Field {
   override protected val position: (Int, Int) = (x, y)
   
-  var local_infected_count: Int = 0  
+  var local_infected_count: Int = 0
+  override val neighbours: Array[IndexedSeq[Field]] = Array.ofDim(neighbour_layers + 1)
   
   override def clear(): Unit = {
     inhabitants = Seq.empty
@@ -20,16 +22,34 @@ class BasicField(x: Int, y: Int) extends Field {
   }
   
   override def infect_inhabitants(infection_probability: Double): Unit = {
-    inhabitants.foreach { person =>
-      if (!person.infected) {
-        if (scala.util.Random.nextDouble() < infection_probability) {
+    // Roll once for the entire field
+    val roll = scala.util.Random.nextDouble()
+    val shouldInfect = roll < infection_probability
+    
+    if (shouldInfect) {
+      inhabitants.foreach { person =>
+        if (!person.infected) {
           person.infected = true
         }
       }
     }
   }
   
-  def get_direct_neighbours(board: Board): Seq[Field] = {
+  override def calculate_neighbours(board: Board, layer: Int): Unit = {
+    layer match {
+      case 0 => 
+        neighbours(0) = IndexedSeq(this)
+      case 1 => 
+        neighbours(1) = get_direct_neighbours(board)
+      case _ => 
+        neighbours(layer) = (neighbours(layer - 1)
+          .flatMap(_.neighbours(1))
+          .toSet -- neighbours(0) -- neighbours(1))
+          .toIndexedSeq
+    }
+  }
+  
+  def get_direct_neighbours(board: Board): IndexedSeq[Field] = {
     val offsets = Seq(
       (0, 1),
       (0, -1),
@@ -42,11 +62,7 @@ class BasicField(x: Int, y: Int) extends Field {
     offsets.flatMap { case (dx, dy) =>
       val nx = x + dx
       val ny = y + dy
-      if (nx >= 0 && nx < board.fields.length && ny >= 0 && ny < board.fields(0).length) {
-        Some(board.fields(nx)(ny))
-      } else {
-        None
-      }
-    }
+      Try(board.fields(nx)(ny)).toOption
+    }.toIndexedSeq
   }
 }

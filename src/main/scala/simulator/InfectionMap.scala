@@ -1,8 +1,6 @@
 package simulator
 
 import simulator.disease.Disease
-import simulator.fields.Field
-import scala.util.Try
 
 class InfectionMap(board: Board, disease: Disease) {
   private val width = board.fields.length
@@ -11,7 +9,7 @@ class InfectionMap(board: Board, disease: Disease) {
   // N x N array storing infection probability for each field
   private val probabilities: Array[Array[Double]] = Array.ofDim[Double](width, height)
   
-  // Calculate infection probabilities for all fields based on infected inhabitants
+  // infection probabilities for all fields based on infected inhabitants
   def calculate(): Unit = {
     for {
       x <- 0 until width
@@ -33,49 +31,21 @@ class InfectionMap(board: Board, disease: Disease) {
   
   private def spreadInfectionFrom(sourceX: Int, sourceY: Int, infectedCount: Int): Unit = {
     val maxDistance = disease.get_max_infection_distance()
+    val sourceField = board.fields(sourceX)(sourceY)
     
-    var distance = 0
-    var currentLayer = Set((sourceX, sourceY))
-    var visited = Set.empty[(Int, Int)]
-    
-    while (distance <= maxDistance && disease.get_infection_probability_by_layer(distance) > 0) {
-      currentLayer.foreach { case (x, y) =>
+    // preprocessed neighbours for each distance
+    for (distance <- 0 to maxDistance) {
+      if (disease.get_infection_probability_by_layer(distance) > 0) {
+        val neighboursAtDistance = sourceField.neighbours(distance)
         val probability = disease.calculate_infection_chance(infectedCount, distance)
         
-        // P(A or B) = 1 - (1-P(A)) * (1-P(B))
-        val currentProb = probabilities(x)(y)
-        probabilities(x)(y) = 1.0 - (1.0 - currentProb) * (1.0 - probability)
-      }
-      
-      // Prepare next layer
-      visited = visited ++ currentLayer
-      val nextLayer = currentLayer.flatMap { case (x, y) =>
-        getDirectNeighbours(x, y)
-      } -- visited
-      
-      currentLayer = nextLayer
-      distance += 1
-    }
-  }
-  
-  // HEX GRID NEIGHBOURS
-  private def getDirectNeighbours(x: Int, y: Int): Seq[(Int, Int)] = {
-    val offsets = Seq(
-      (0, 1),
-      (0, -1),
-      (1, 0),
-      (-1, 0),
-      if (x % 2 == 0) (-1, -1) else (-1, 1),
-      if (x % 2 == 0) (1, -1) else (1, 1)
-    )
-    
-    offsets.flatMap { case (dx, dy) =>
-      val nx = x + dx
-      val ny = y + dy
-      if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-        Some((nx, ny))
-      } else {
-        None
+        neighboursAtDistance.foreach { field =>
+          val (x, y) = field.get_position()
+
+          // P(A or B) = 1 - (1-P(A)) * (1-P(B))
+          val currentProb = probabilities(x)(y)
+          probabilities(x)(y) = 1.0 - (1.0 - currentProb) * (1.0 - probability)
+        }
       }
     }
   }

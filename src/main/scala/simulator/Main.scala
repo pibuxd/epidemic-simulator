@@ -8,16 +8,16 @@ object Main{
 
     val BOARD_WIDTH: Int = 10
     val BOARD_HEIGHT: Int = 10
+    val LAYERS: Int = 5  // Max distance for preprocessing
     val TURNS = 20
 
-    // Try with more contagious disease
     val disease: Disease = BasicDisease(base_infection_prob = 0.5)  // 50% infection rate
 
     val start = System.currentTimeMillis()
-    val board: Board = Board(BOARD_WIDTH, BOARD_HEIGHT)
+    val board: Board = Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
     val after = System.currentTimeMillis()
     val time = after - start
-    println(s"Board generation costed us $time milliseconds")
+    println(s"Board generation completed in $time milliseconds\n")
 
     val people: Seq[Person] = ((1 to 9) map (i => BasicPerson(i, i, false, board)))
                                             ++ Some(BasicPerson(9, 9, true, board))

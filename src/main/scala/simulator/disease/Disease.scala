@@ -12,14 +12,18 @@ trait Disease {
   
   def get_max_infection_distance(): Int = 3
   
+  // Infection probability by distance with case matching
   def get_infection_probability_by_layer(layer: Int): Double = {
-    if (layer > get_max_infection_distance()) return 0.0 // too far away
-    layer match {
-      case 0 => get_base_infection_probability() // same field - full probability
-      case 1 => get_base_infection_probability() * 0.5 // direct neighbors - 50%
-      case 2 => get_base_infection_probability() * 0.2 // 2 layers away - 20%
-      case _ => get_base_infection_probability() * 0.05 // further - 5%
-    }
+    if (layer > get_max_infection_distance()) return 0.0
+    
+    val base = get_base_infection_probability()
+    base * (layer match {
+      case 0 => 1.0     // same field - 100%
+      case 1 => 0.5     // neighbors - 50%
+      case 2 => 0.33    // 2 away - 33%
+      case 3 => 0.25    // 3 away - 25%
+      case _ => 1.0 / (layer + 1.0)
+    })
   }
   
   // 1 - (1 - p)^n where p is probability per infected person, n is count
