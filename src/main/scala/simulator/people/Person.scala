@@ -7,7 +7,5 @@ trait Person {
   var infected: Boolean = false
   
   def get_position(): (Int, Int) = position.copy()
-  def infect_yourself(chance: Int): Unit
   def make_step(): Unit
-
 }

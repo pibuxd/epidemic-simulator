@@ -15,14 +15,12 @@ class BasicPerson(start_x: Int, start_y: Int, start_infected: Boolean, board: Bo
 
   current_field().check_in(this)
 
-  override def infect_yourself(chance: Int): Unit = {
-    if (!infected && Random().nextInt(100) < chance) infected = true
-  }
-
   override def make_step(): Unit = {
     val options = current_field().neighbours(1)
-    position = options(Random.nextInt(options.size)).get_position()
-    current_field().check_in(this)
+    if (options.nonEmpty) {
+      position = options(Random.nextInt(options.size)).get_position()
+      current_field().check_in(this)
+    }
   }
 
 }
