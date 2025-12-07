@@ -1,0 +1,58 @@
+body {
+    margin: 0;
+    font-family: Inter, Arial, sans-serif;
+    background: #0b1220;
+    color: #e6eef8;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+    padding: 16px;
+}
+
+.controls {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.controls input[type=range] {
+    width: 100%;
+}
+
+.button-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.button-row button {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: none;
+    background: #374151;
+    color: white;
+    cursor: pointer;
+}
+
+.sim-area {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    gap: 12px;
+}
+
+.sim-canvas {
+    width: 900px;
+    height: 600px;
+    border-radius: 8px;
+    background: #0f172a;
+}
+
+.panel {
+    flex: 1;
+}

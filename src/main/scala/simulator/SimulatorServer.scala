@@ -1,0 +1,74 @@
+package simulator
+
+import akka.actor.typed.ActorSystem
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.ws.TextMessage
+import akka.http.scaladsl.server.Directives._
+import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, Sink, Source}
+import spray.json._
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
+import simulator.people._
+import simulator.fields._
+import simulator.disease._
+
+final case class AgentOut(x: Int, y: Int, status: Int)
+final case class StateMsg(`type`: String, width: Int, height: Int, agents: Seq[AgentOut])
+
+object JsonProtocol extends DefaultJsonProtocol {
+  implicit val agentFmt: RootJsonFormat[AgentOut] = jsonFormat3(AgentOut)
+  implicit val stateFmt: RootJsonFormat[StateMsg] = jsonFormat4(StateMsg)
+}
+
+object SimulatorServer {
+  def main(args: Array[String]): Unit = {
+    implicit val system = ActorSystem(akka.actor.typed.scaladsl.Behaviors.empty, "sim-server")
+    implicit val ec: ExecutionContext = system.executionContext
+    import JsonProtocol._
+    val BOARD_WIDTH = 10
+    val BOARD_HEIGHT = 10
+    val LAYERS = 5
+    val disease: Disease = new BasicDisease(base_infection_prob = 0.5)
+    val board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
+    val people: scala.collection.mutable.ArrayBuffer[Person] = scala.collection.mutable.ArrayBuffer.empty
+    for (i <- 1 to 9) people += new BasicPerson(i, i, false, board)
+    people += new BasicPerson(9, 9, true, board)
+    def movement_turn(): Unit = {
+      board.fields.flatten.foreach(field => field.clear())
+      people.foreach(person => person.make_step())
+    }
+    def infection_turn(): Unit = {
+      val infectionMap = new InfectionMap(board, disease)
+      infectionMap.calculate()
+      for {
+        x <- 0 until BOARD_WIDTH
+        y <- 0 until BOARD_HEIGHT
+      } {
+        val field = board.fields(x)(y)
+        val probability = infectionMap.getProbability(x, y)
+        field.infect_inhabitants(probability)
+      }
+    }
+    val tickSource = Source.tick(0.millis, 500.millis, ()).map { _ =>
+      movement_turn()
+      infection_turn()
+      val agentsOut = people.map(p => {
+        val pos = p.get_position()
+        AgentOut(pos._1, pos._2, if (p.infected) 1 else 0)
+      }).toSeq
+      val msg = StateMsg("state", BOARD_WIDTH, BOARD_HEIGHT, agentsOut)
+      TextMessage.Strict(msg.toJson.compactPrint)
+    }
+    val hubSource = tickSource.runWith(BroadcastHub.sink(bufferSize = 256))
+    val wsFlow = Flow.fromSinkAndSourceCoupled(Sink.ignore, hubSource)
+    val route = path("ws") {
+      handleWebSocketMessages(wsFlow)
+    } ~ get {
+      complete("Simulator WS running")
+    }
+    val bindingFuture = Http().newServerAt("0.0.0.0", 9000).bind(route)
+    bindingFuture.foreach(_ => println("SimulatorServer: WebSocket endpoint available at ws://localhost:9000/ws"))(ec)
+    println("SimulatorServer started, waiting. Press Ctrl+C to stop.")
+    Await.result(system.whenTerminated, Duration.Inf)
+  }
+}

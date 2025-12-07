@@ -1,7 +1,6 @@
-
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
-val _scalaVersion = "3.7.1"
+val _scalaVersion = "2.13.15"
 
 name := "EpidemicSimulator"
 ThisBuild / scalaVersion := _scalaVersion
@@ -16,13 +15,6 @@ val standardOptions = Seq(
   "utf8"
 )
 
-val scala3Options = Seq(
-  "-explain",
-  "-Wsafe-init",
-  "-Ycheck-all-patmat",
-  "-Wunused:all",
-)
-
 developers := List(
   Developer(
     "jzajac04",
@@ -35,9 +27,11 @@ lazy val root = (project in file("."))
   .settings(
     name := "EpidemicSimulator",
     libraryDependencies ++= Seq(
-      "org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0"
+      "org.scala-lang.modules" %% "scala-parallel-collections" % "1.2.0",
+      "com.typesafe.akka" %% "akka-actor-typed" % "2.6.20",
+      "com.typesafe.akka" %% "akka-stream" % "2.6.20",
+      "com.typesafe.akka" %% "akka-http" % "10.2.10",
+      "io.spray" %% "spray-json" % "1.3.6"
     ),
-    scalacOptions ++= standardOptions ++ scala3Options
+    scalacOptions ++= standardOptions
   )
-
-testFrameworks += new TestFramework("munit.Framework")
