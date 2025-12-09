@@ -8,6 +8,7 @@ import akka.stream.scaladsl.{BroadcastHub, Flow, Keep, Sink, Source}
 import spray.json._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
+import scala.collection.mutable.ArrayBuffer
 import simulator.people._
 import simulator.fields._
 import simulator.disease._
@@ -24,13 +25,18 @@ object SimulatorServer {
   def main(args: Array[String]): Unit = {
     implicit val system = ActorSystem(akka.actor.typed.scaladsl.Behaviors.empty, "sim-server")
     implicit val ec: ExecutionContext = system.executionContext
+
+    val config = system.settings.config
+    val serverHost = config.getString("simulator.server.host")
+    val serverPort = config.getInt("simulator.server.port")
+
     import JsonProtocol._
     val BOARD_WIDTH = 10
     val BOARD_HEIGHT = 10
     val LAYERS = 5
     val disease: Disease = new BasicDisease(base_infection_prob = 0.5)
     val board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
-    val people: scala.collection.mutable.ArrayBuffer[Person] = scala.collection.mutable.ArrayBuffer.empty
+    val people = ArrayBuffer.empty[Person]
     for (i <- 1 to 9) people += new BasicPerson(i, i, false, board)
     people += new BasicPerson(9, 9, true, board)
     def movement_turn(): Unit = {
@@ -66,8 +72,8 @@ object SimulatorServer {
     } ~ get {
       complete("Simulator WS running")
     }
-    val bindingFuture = Http().newServerAt("0.0.0.0", 9000).bind(route)
-    bindingFuture.foreach(_ => println("SimulatorServer: WebSocket endpoint available at ws://localhost:9000/ws"))(ec)
+    val bindingFuture = Http().newServerAt(serverHost, serverPort).bind(route)
+    bindingFuture.foreach(_ => println(s"SimulatorServer: WebSocket endpoint available at ws://$serverHost:$serverPort/ws"))(ec)
     println("SimulatorServer started, waiting. Press Ctrl+C to stop.")
     Await.result(system.whenTerminated, Duration.Inf)
   }
