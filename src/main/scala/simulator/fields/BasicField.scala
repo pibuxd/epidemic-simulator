@@ -1,7 +1,7 @@
 package simulator.fields
 
 import simulator.Board
-import simulator.people.*
+import simulator.people._
 import simulator.disease.Disease
 import scala.util.Try
 

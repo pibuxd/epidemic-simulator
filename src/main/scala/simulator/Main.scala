@@ -1,26 +1,26 @@
 package simulator
 
-import simulator.people.*
-import simulator.disease.*
+import simulator.people._
+import simulator.disease._
+import simulator.fields._
 
 object Main{
   def main(args: Array[String]): Unit = {
 
     val BOARD_WIDTH: Int = 10
     val BOARD_HEIGHT: Int = 10
-    val LAYERS: Int = 5  // Max distance for preprocessing
+    val LAYERS: Int = 5
     val TURNS = 20
 
-    val disease: Disease = BasicDisease(base_infection_prob = 0.5)  // 50% infection rate
+    val disease: Disease = new BasicDisease(base_infection_prob = 0.5)
 
     val start = System.currentTimeMillis()
-    val board: Board = Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
+    val board: Board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
     val after = System.currentTimeMillis()
     val time = after - start
     println(s"Board generation completed in $time milliseconds\n")
 
-    val people: Seq[Person] = ((1 to 9) map (i => BasicPerson(i, i, false, board)))
-                                            ++ Some(BasicPerson(9, 9, true, board))
+    val people: Seq[Person] = (1 to 9).map(i => new BasicPerson(i, i, false, board)).toSeq :+ new BasicPerson(9, 9, true, board)
 
     def movement_turn(): Unit = {
       board.fields.flatten.foreach(field => field.clear())
@@ -28,9 +28,9 @@ object Main{
     }
 
     def infection_turn(): Unit = {
-      val infectionMap = InfectionMap(board, disease)
+      val infectionMap = new InfectionMap(board, disease)
       infectionMap.calculate()
-      
+
       for {
         x <- 0 until BOARD_WIDTH
         y <- 0 until BOARD_HEIGHT
