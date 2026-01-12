@@ -9,6 +9,7 @@ import spray.json._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 import simulator.people._
 import simulator.fields._
 import simulator.disease._
@@ -46,8 +47,10 @@ object SimulatorServer {
     val board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
     val people = ArrayBuffer.empty[Person]
     val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
-    for (i <- 0 until healthyCount) people += new BasicPerson(i % BOARD_WIDTH, i / BOARD_WIDTH, false, board)
-    for (_ <- 0 until INITIAL_INFECTED) people += new BasicPerson(BOARD_WIDTH - 1, BOARD_HEIGHT - 1, true, board)
+    val random = new Random()
+    for (i <- 0 until healthyCount) people += new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), false, board)
+    for (_ <- 0 until INITIAL_INFECTED) people += new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), true, board)
+    
     def movement_turn(): Unit = {
       board.fields.flatten.foreach(field => field.clear())
       people.foreach(person => person.make_step())
