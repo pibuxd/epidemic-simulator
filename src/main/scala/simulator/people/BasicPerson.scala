@@ -24,6 +24,8 @@ class BasicPerson(start_x: Int, start_y: Int, start_infected: Boolean, board: Bo
   }
 
   override def make_step(): Unit = {
+    if (dead) return
+
     if (direction_duration <= 0) {
       val turn = if (Random.nextBoolean()) 1 else -1
       change_direction(turn)
@@ -60,5 +62,4 @@ class BasicPerson(start_x: Int, start_y: Int, start_infected: Boolean, board: Bo
       }
     }
   }
-
 }

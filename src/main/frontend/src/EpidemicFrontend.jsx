@@ -118,7 +118,10 @@ export default function EpidemicFrontend() {
       ctx.beginPath();
       ctx.arc(finalX, finalY, hexSize * 0.25, 0, 2 * Math.PI);
 
-      if (targetAgent.status === 1) {
+      if (targetAgent.status === 2) {
+        ctx.fillStyle = "#000000";
+        ctx.shadowBlur = 0;
+      } else if (targetAgent.status === 1) {
         ctx.fillStyle = "#f43f5e";
         ctx.shadowColor = "#f43f5e";
         ctx.shadowBlur = 15;
