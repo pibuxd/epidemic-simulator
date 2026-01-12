@@ -31,14 +31,20 @@ object SimulatorServer {
     val serverPort = config.getInt("simulator.server.port")
 
     import JsonProtocol._
-    val BOARD_WIDTH = 10
-    val BOARD_HEIGHT = 10
-    val LAYERS = 5
-    val disease: Disease = new BasicDisease(base_infection_prob = 0.5)
+    val BOARD_WIDTH = config.getInt("simulator.board.width")
+    val BOARD_HEIGHT = config.getInt("simulator.board.height")
+    val LAYERS = config.getInt("simulator.board.layers")
+    val TOTAL_PEOPLE = config.getInt("simulator.population.total")
+    val INITIAL_INFECTED = config.getInt("simulator.population.initial_infected")
+    val BASE_INFECTION_PROB = config.getDouble("simulator.disease.base_infection_prob")
+    val TICK_INTERVAL = config.getInt("simulator.tick_interval_ms")
+    
+    val disease: Disease = new BasicDisease(base_infection_prob = BASE_INFECTION_PROB)
     val board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
     val people = ArrayBuffer.empty[Person]
-    for (i <- 1 to 9) people += new BasicPerson(i, i, false, board)
-    people += new BasicPerson(9, 9, true, board)
+    val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
+    for (i <- 0 until healthyCount) people += new BasicPerson(i % BOARD_WIDTH, i / BOARD_WIDTH, false, board)
+    for (_ <- 0 until INITIAL_INFECTED) people += new BasicPerson(BOARD_WIDTH - 1, BOARD_HEIGHT - 1, true, board)
     def movement_turn(): Unit = {
       board.fields.flatten.foreach(field => field.clear())
       people.foreach(person => person.make_step())
@@ -55,7 +61,7 @@ object SimulatorServer {
         field.infect_inhabitants(probability)
       }
     }
-    val tickSource = Source.tick(0.millis, 500.millis, ()).map { _ =>
+    val tickSource = Source.tick(0.millis, TICK_INTERVAL.millis, ()).map { _ =>
       movement_turn()
       infection_turn()
       val agentsOut = people.map(p => {

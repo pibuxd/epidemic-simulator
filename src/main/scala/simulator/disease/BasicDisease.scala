@@ -14,5 +14,4 @@ class BasicDisease(
   override def get_mortality_rate(): Double = mortality
   override def get_incubation_period(): Int = incubation
   override def is_symptomatic_infectious(): Boolean = false
-  // get_infection_probability_by_layer uses default implementation from trait
 }

@@ -3,16 +3,21 @@ package simulator
 import simulator.people._
 import simulator.disease._
 import simulator.fields._
+import com.typesafe.config.ConfigFactory
 
 object Main{
   def main(args: Array[String]): Unit = {
+    val config = ConfigFactory.load()
+    
+    val BOARD_WIDTH = config.getInt("simulator.board.width")
+    val BOARD_HEIGHT = config.getInt("simulator.board.height")
+    val LAYERS = config.getInt("simulator.board.layers")
+    val TURNS = config.getInt("simulator.turns")
+    val TOTAL_PEOPLE = config.getInt("simulator.population.total")
+    val INITIAL_INFECTED = config.getInt("simulator.population.initial_infected")
+    val BASE_INFECTION_PROB = config.getDouble("simulator.disease.base_infection_prob")
 
-    val BOARD_WIDTH: Int = 10
-    val BOARD_HEIGHT: Int = 10
-    val LAYERS: Int = 5
-    val TURNS = 20
-
-    val disease: Disease = new BasicDisease(base_infection_prob = 0.5)
+    val disease: Disease = new BasicDisease(base_infection_prob = BASE_INFECTION_PROB)
 
     val start = System.currentTimeMillis()
     val board: Board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
@@ -20,7 +25,9 @@ object Main{
     val time = after - start
     println(s"Board generation completed in $time milliseconds\n")
 
-    val people: Seq[Person] = (1 to 9).map(i => new BasicPerson(i, i, false, board)).toSeq :+ new BasicPerson(9, 9, true, board)
+    val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
+    val people: Seq[Person] = (0 until healthyCount).map(i => new BasicPerson(i % BOARD_WIDTH, i / BOARD_WIDTH, false, board)).toSeq ++
+                              (0 until INITIAL_INFECTED).map(_ => new BasicPerson(BOARD_WIDTH - 1, BOARD_HEIGHT - 1, true, board))
 
     def movement_turn(): Unit = {
       board.fields.flatten.foreach(field => field.clear())
@@ -41,7 +48,7 @@ object Main{
       }
     }
 
-    println(s"Starting simulation with ${people.size} people, 1 infected")
+    println(s"Starting simulation with ${people.size} people, $INITIAL_INFECTED infected")
     println(s"Disease: ${disease.get_name()}, base probability: ${disease.get_base_infection_probability()}")
     println(s"Max infection distance: ${disease.get_max_infection_distance()} layers\n")
     

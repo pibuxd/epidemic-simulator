@@ -22,7 +22,6 @@ class BasicField(x: Int, y: Int, neighbour_layers: Int) extends Field {
   }
   
   override def infect_inhabitants(infection_probability: Double): Unit = {
-    // Roll once for the entire field
     val roll = scala.util.Random.nextDouble()
     val shouldInfect = roll < infection_probability
     
