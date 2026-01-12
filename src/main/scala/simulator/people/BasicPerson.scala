@@ -24,13 +24,11 @@ class BasicPerson(start_x: Int, start_y: Int, start_infected: Boolean, board: Bo
   }
 
   override def make_step(): Unit = {
-    // Normal change of direction: rotate 1 step left or right (60 degrees)
     if (direction_duration <= 0) {
       val turn = if (Random.nextBoolean()) 1 else -1
       change_direction(turn)
     }
 
-    // Get current direction vector
     val is_even_col = position._1 % 2 == 0
     val (dx, dy) = direction_index match {
       case 0 => (0, -1)
@@ -46,7 +44,6 @@ class BasicPerson(start_x: Int, start_y: Int, start_infected: Boolean, board: Bo
       val target_x = position._1 + dx
       val target_y = position._2 + dy
 
-      // Move to target (or as close as possible)
       val best_option = options.minBy(f => {
         val (fx, fy) = f.get_position()
         math.pow(fx - target_x, 2) + math.pow(fy - target_y, 2)
@@ -55,7 +52,6 @@ class BasicPerson(start_x: Int, start_y: Int, start_infected: Boolean, board: Bo
       position = best_option.get_position()
       current_field().check_in(this)
 
-      // Wall hit: rotate 2 steps left or right (120 degrees)
       if (position != (target_x, target_y)) {
         val bounce = if (Random.nextBoolean()) 2 else -2
         change_direction(bounce)
