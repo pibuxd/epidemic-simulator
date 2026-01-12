@@ -9,6 +9,7 @@ import spray.json._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 import simulator.people._
 import simulator.fields._
 import simulator.disease._
@@ -47,7 +48,7 @@ object SimulatorServer {
       .asInstanceOf[Disease]
     val board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
     val people = ArrayBuffer.empty[Person]
-    
+
     val lock = new Object()
     var isRunning = false
 
@@ -55,10 +56,11 @@ object SimulatorServer {
       people.clear()
       board.fields.flatten.foreach(_.clear())
       val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
-      for (i <- 0 until healthyCount) people += new BasicPerson(i % BOARD_WIDTH, i / BOARD_WIDTH, false, board)
-      for (_ <- 0 until INITIAL_INFECTED) people += new BasicPerson(BOARD_WIDTH - 1, BOARD_HEIGHT - 1, true, board)
+      val random = new Random()
+      for (i <- 0 until healthyCount) people += new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), false, board)
+      for (_ <- 0 until INITIAL_INFECTED) people += new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), true, board)
     }
-    
+
     initPopulation()
 
     def movement_turn(): Unit = {
@@ -80,18 +82,20 @@ object SimulatorServer {
     val tickSource = Source.tick(0.millis, TICK_INTERVAL.millis, ()).map { _ =>
       lock.synchronized {
         if (isRunning) {
+          people.foreach(p => p.tick(disease))
           movement_turn()
           infection_turn()
         }
         val agentsOut = people.map(p => {
           val pos = p.get_position()
-          AgentOut(pos._1, pos._2, if (p.infected) 1 else 0)
+          val status = if (p.dead) 2 else if (p.infected) 1 else 0
+          AgentOut(pos._1, pos._2, status)
         }).toSeq
         val msg = StateMsg("state", BOARD_WIDTH, BOARD_HEIGHT, agentsOut)
         TextMessage.Strict(msg.toJson.compactPrint)
       }
     }
-    
+
     val incomingSink = Sink.foreach[akka.http.scaladsl.model.ws.Message] {
       case TextMessage.Strict(text) =>
         try {

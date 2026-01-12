@@ -1,9 +1,11 @@
 package simulator
 
-import simulator.people._
-import simulator.disease._
-import simulator.fields._
+import simulator.people.*
+import simulator.disease.*
+import simulator.fields.*
 import com.typesafe.config.ConfigFactory
+
+import scala.util.Random
 
 object Main{
   def main(args: Array[String]): Unit = {
@@ -29,8 +31,9 @@ object Main{
     println(s"Board generation completed in $time milliseconds\n")
 
     val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
-    val people: Seq[Person] = (0 until healthyCount).map(i => new BasicPerson(i % BOARD_WIDTH, i / BOARD_WIDTH, false, board)).toSeq ++
-                              (0 until INITIAL_INFECTED).map(_ => new BasicPerson(BOARD_WIDTH - 1, BOARD_HEIGHT - 1, true, board))
+    val random = new Random()
+    val people: Seq[Person] = (0 until healthyCount).map(i => new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), false, board)).toSeq ++
+                              (0 until INITIAL_INFECTED).map(_ => new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), true, board))
 
     def movement_turn(): Unit = {
       board.fields.flatten.foreach(field => field.clear())
