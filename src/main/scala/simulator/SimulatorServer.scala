@@ -65,11 +65,13 @@ object SimulatorServer {
       }
     }
     val tickSource = Source.tick(0.millis, TICK_INTERVAL.millis, ()).map { _ =>
+      people.foreach(p => p.tick(disease))
       movement_turn()
       infection_turn()
       val agentsOut = people.map(p => {
         val pos = p.get_position()
-        AgentOut(pos._1, pos._2, if (p.infected) 1 else 0)
+        val status = if (p.dead) 2 else if (p.infected) 1 else 0
+        AgentOut(pos._1, pos._2, status)
       }).toSeq
       val msg = StateMsg("state", BOARD_WIDTH, BOARD_HEIGHT, agentsOut)
       TextMessage.Strict(msg.toJson.compactPrint)
