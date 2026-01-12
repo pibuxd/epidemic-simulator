@@ -15,9 +15,12 @@ object Main{
     val TURNS = config.getInt("simulator.turns")
     val TOTAL_PEOPLE = config.getInt("simulator.population.total")
     val INITIAL_INFECTED = config.getInt("simulator.population.initial_infected")
-    val BASE_INFECTION_PROB = config.getDouble("simulator.disease.base_infection_prob")
+    val DISEASE_TYPE = config.getString("simulator.disease.type")
 
-    val disease: Disease = new BasicDisease(base_infection_prob = BASE_INFECTION_PROB)
+    val disease: Disease = Class.forName(s"simulator.disease.$DISEASE_TYPE")
+      .getDeclaredConstructor()
+      .newInstance()
+      .asInstanceOf[Disease]
 
     val start = System.currentTimeMillis()
     val board: Board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)

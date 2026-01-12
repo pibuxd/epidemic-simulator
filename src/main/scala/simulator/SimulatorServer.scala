@@ -36,10 +36,13 @@ object SimulatorServer {
     val LAYERS = config.getInt("simulator.board.layers")
     val TOTAL_PEOPLE = config.getInt("simulator.population.total")
     val INITIAL_INFECTED = config.getInt("simulator.population.initial_infected")
-    val BASE_INFECTION_PROB = config.getDouble("simulator.disease.base_infection_prob")
+    val DISEASE_TYPE = config.getString("simulator.disease.type")
     val TICK_INTERVAL = config.getInt("simulator.tick_interval_ms")
     
-    val disease: Disease = new BasicDisease(base_infection_prob = BASE_INFECTION_PROB)
+    val disease: Disease = Class.forName(s"simulator.disease.$DISEASE_TYPE")
+      .getDeclaredConstructor()
+      .newInstance()
+      .asInstanceOf[Disease]
     val board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
     val people = ArrayBuffer.empty[Person]
     val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
