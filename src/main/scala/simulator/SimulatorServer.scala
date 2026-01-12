@@ -15,15 +15,17 @@ import simulator.disease._
 
 final case class AgentOut(x: Int, y: Int, status: Int)
 final case class StateMsg(`type`: String, width: Int, height: Int, agents: Seq[AgentOut])
+final case class Command(command: String)
 
 object JsonProtocol extends DefaultJsonProtocol {
   implicit val agentFmt: RootJsonFormat[AgentOut] = jsonFormat3(AgentOut)
   implicit val stateFmt: RootJsonFormat[StateMsg] = jsonFormat4(StateMsg)
+  implicit val commandFmt: RootJsonFormat[Command] = jsonFormat1(Command)
 }
 
 object SimulatorServer {
   def main(args: Array[String]): Unit = {
-    implicit val system = ActorSystem(akka.actor.typed.scaladsl.Behaviors.empty, "sim-server")
+    implicit val system: ActorSystem[Any] = ActorSystem(akka.actor.typed.scaladsl.Behaviors.empty, "sim-server")
     implicit val ec: ExecutionContext = system.executionContext
 
     val config = system.settings.config
@@ -45,9 +47,20 @@ object SimulatorServer {
       .asInstanceOf[Disease]
     val board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
     val people = ArrayBuffer.empty[Person]
-    val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
-    for (i <- 0 until healthyCount) people += new BasicPerson(i % BOARD_WIDTH, i / BOARD_WIDTH, false, board)
-    for (_ <- 0 until INITIAL_INFECTED) people += new BasicPerson(BOARD_WIDTH - 1, BOARD_HEIGHT - 1, true, board)
+    
+    val lock = new Object()
+    var isRunning = false
+
+    def initPopulation(): Unit = lock.synchronized {
+      people.clear()
+      board.fields.flatten.foreach(_.clear())
+      val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
+      for (i <- 0 until healthyCount) people += new BasicPerson(i % BOARD_WIDTH, i / BOARD_WIDTH, false, board)
+      for (_ <- 0 until INITIAL_INFECTED) people += new BasicPerson(BOARD_WIDTH - 1, BOARD_HEIGHT - 1, true, board)
+    }
+    
+    initPopulation()
+
     def movement_turn(): Unit = {
       board.fields.flatten.foreach(field => field.clear())
       people.foreach(person => person.make_step())
@@ -65,17 +78,38 @@ object SimulatorServer {
       }
     }
     val tickSource = Source.tick(0.millis, TICK_INTERVAL.millis, ()).map { _ =>
-      movement_turn()
-      infection_turn()
-      val agentsOut = people.map(p => {
-        val pos = p.get_position()
-        AgentOut(pos._1, pos._2, if (p.infected) 1 else 0)
-      }).toSeq
-      val msg = StateMsg("state", BOARD_WIDTH, BOARD_HEIGHT, agentsOut)
-      TextMessage.Strict(msg.toJson.compactPrint)
+      lock.synchronized {
+        if (isRunning) {
+          movement_turn()
+          infection_turn()
+        }
+        val agentsOut = people.map(p => {
+          val pos = p.get_position()
+          AgentOut(pos._1, pos._2, if (p.infected) 1 else 0)
+        }).toSeq
+        val msg = StateMsg("state", BOARD_WIDTH, BOARD_HEIGHT, agentsOut)
+        TextMessage.Strict(msg.toJson.compactPrint)
+      }
     }
+    
+    val incomingSink = Sink.foreach[akka.http.scaladsl.model.ws.Message] {
+      case TextMessage.Strict(text) =>
+        try {
+          val cmd = text.parseJson.convertTo[Command]
+          cmd.command match {
+            case "start" => isRunning = true
+            case "stop" => isRunning = false
+            case "reset" =>
+              isRunning = false
+              initPopulation()
+            case _ =>
+          }
+        } catch { case _: Exception => }
+      case _ =>
+    }
+
     val hubSource = tickSource.runWith(BroadcastHub.sink(bufferSize = 256))
-    val wsFlow = Flow.fromSinkAndSourceCoupled(Sink.ignore, hubSource)
+    val wsFlow = Flow.fromSinkAndSourceCoupled(incomingSink, hubSource)
     val route = path("ws") {
       handleWebSocketMessages(wsFlow)
     } ~ get {

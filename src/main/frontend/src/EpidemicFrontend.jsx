@@ -143,7 +143,7 @@ export default function EpidemicFrontend() {
     if (!c) return;
     const ctx = c.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
-    const W = 400; const H = 120;
+    const W = 270; const H = 120;
     c.width = W * dpr; c.height = H * dpr;
     c.style.width = W + "px"; c.style.height = H + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -178,13 +178,27 @@ export default function EpidemicFrontend() {
 
   useEffect(() => { return () => { if (socketRef.current) socketRef.current.close(); }; }, []);
 
+  const sendCommand = useCallback((cmd) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ command: cmd }));
+    }
+  }, []);
+
   return (
     <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: "20px", padding: "20px", fontFamily: "Inter, sans-serif", background: "#0b1220", minHeight: "100vh", color: "#e2e8f0" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
           <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Connection</h3>
-          <input value={wsUrl} onChange={e => setWsUrl(e.target.value)} style={{ width: "100%", padding: "8px", marginBottom: "8px", background: "#1e293b", border: "1px solid #334155", color: "white", borderRadius: "4px" }} />
+          <input value={wsUrl} onChange={e => setWsUrl(e.target.value)} style={{ width: "93%", padding: "8px", marginBottom: "8px", background: "#1e293b", border: "1px solid #334155", color: "white", borderRadius: "4px" }} />
           <button onClick={connect} disabled={connected} style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: connected ? "#10b981" : "#3b82f6", color: "white", fontWeight: "bold" }}>{connected ? "Connected" : "Connect"}</button>
+        </div>
+        <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
+          <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Control</h3>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={() => sendCommand("start")} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#19d219", color: "white", fontWeight: "bold" }}>Start</button>
+            <button onClick={() => sendCommand("stop")} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#e0e018", color: "white", fontWeight: "bold" }}>Stop</button>
+            <button onClick={() => sendCommand("reset")} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#d12b2b", color: "white", fontWeight: "bold" }}>Reset</button>
+          </div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
           <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Settings</h3>
