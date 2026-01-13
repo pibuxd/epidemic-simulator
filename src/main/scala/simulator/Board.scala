@@ -12,7 +12,7 @@ class Board(width: Int, height: Int, neighbour_layers: Int) {
   )
 
   println(s"Preprocessing neighbours for $width x $height board with $neighbour_layers layers...")
-  val preprocessStart = System.currentTimeMillis()
+  private val preprocessStart = System.currentTimeMillis()
   
   (0 to neighbour_layers).foreach { layer =>
     fields.flatten.foreach { field =>
@@ -20,6 +20,6 @@ class Board(width: Int, height: Int, neighbour_layers: Int) {
     }
   }
   
-  val preprocessEnd = System.currentTimeMillis()
+  private val preprocessEnd = System.currentTimeMillis()
   println(s"Preprocessing completed in ${preprocessEnd - preprocessStart} ms")
 }
