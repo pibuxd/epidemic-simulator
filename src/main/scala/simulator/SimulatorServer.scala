@@ -32,61 +32,24 @@ object SimulatorServer {
     val config = system.settings.config
     val serverHost = config.getString("simulator.server.host")
     val serverPort = config.getInt("simulator.server.port")
-
-    import JsonProtocol._
+    val TICK_INTERVAL = config.getInt("simulator.tick_interval_ms")
     val BOARD_WIDTH = config.getInt("simulator.board.width")
     val BOARD_HEIGHT = config.getInt("simulator.board.height")
-    val LAYERS = config.getInt("simulator.board.layers")
-    val TOTAL_PEOPLE = config.getInt("simulator.population.total")
-    val INITIAL_INFECTED = config.getInt("simulator.population.initial_infected")
-    val DISEASE_TYPE = config.getString("simulator.disease.type")
-    val TICK_INTERVAL = config.getInt("simulator.tick_interval_ms")
-    
-    val disease: Disease = Class.forName(s"simulator.disease.$DISEASE_TYPE")
-      .getDeclaredConstructor()
-      .newInstance()
-      .asInstanceOf[Disease]
-    val board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
-    val people = ArrayBuffer.empty[Person]
+
+
+    import JsonProtocol._
+    val simulation = new Simulation()
 
     val lock = new Object()
     var isRunning = false
+    simulation.initPopulation(lock)
 
-    def initPopulation(): Unit = lock.synchronized {
-      people.clear()
-      board.fields.flatten.foreach(_.clear())
-      val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
-      val random = new Random()
-      for (i <- 0 until healthyCount) people += new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), false, board)
-      for (_ <- 0 until INITIAL_INFECTED) people += new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), true, board)
-    }
-
-    initPopulation()
-
-    def movement_turn(): Unit = {
-      board.fields.flatten.foreach(field => field.clear())
-      people.foreach(person => person.make_step())
-    }
-    def infection_turn(): Unit = {
-      val infectionMap = new InfectionMap(board, disease)
-      infectionMap.calculate()
-      for {
-        x <- 0 until BOARD_WIDTH
-        y <- 0 until BOARD_HEIGHT
-      } {
-        val field = board.fields(x)(y)
-        val probability = infectionMap.getProbability(x, y)
-        field.infect_inhabitants(probability)
-      }
-    }
     val tickSource = Source.tick(0.millis, TICK_INTERVAL.millis, ()).map { _ =>
       lock.synchronized {
         if (isRunning) {
-          people.foreach(p => p.tick(disease))
-          movement_turn()
-          infection_turn()
+          simulation.turn()
         }
-        val agentsOut = people.map(p => {
+        val agentsOut = simulation.people.map(p => {
           val pos = p.get_position()
           val status = if (p.dead) 2 else if (p.infected) 1 else 0
           AgentOut(pos._1, pos._2, status)
@@ -105,7 +68,7 @@ object SimulatorServer {
             case "stop" => isRunning = false
             case "reset" =>
               isRunning = false
-              initPopulation()
+              simulation.initPopulation(lock)
             case _ =>
           }
         } catch { case _: Exception => }

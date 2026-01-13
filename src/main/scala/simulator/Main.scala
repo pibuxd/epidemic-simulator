@@ -1,74 +1,30 @@
 package simulator
 
-import simulator.people.*
-import simulator.disease.*
-import simulator.fields.*
-import com.typesafe.config.ConfigFactory
-
-import scala.util.Random
-
 object Main{
   def main(args: Array[String]): Unit = {
-    val config = ConfigFactory.load()
+    val simulation = new Simulation()
+    val lock = new Object()
+    simulation.initPopulation(lock)
+    val infected_count = simulation.people.count(_.infected)
+
+    println(s"Starting simulation with ${simulation.people.size} people, $infected_count infected")
+    println(s"Disease: ${simulation.disease.get_name()}, base probability: ${simulation.disease.get_base_infection_probability()}")
+    println(s"Max infection distance: ${simulation.disease.get_max_infection_distance()} layers\n")
     
-    val BOARD_WIDTH = config.getInt("simulator.board.width")
-    val BOARD_HEIGHT = config.getInt("simulator.board.height")
-    val LAYERS = config.getInt("simulator.board.layers")
-    val TURNS = config.getInt("simulator.turns")
-    val TOTAL_PEOPLE = config.getInt("simulator.population.total")
-    val INITIAL_INFECTED = config.getInt("simulator.population.initial_infected")
-    val DISEASE_TYPE = config.getString("simulator.disease.type")
-
-    val disease: Disease = Class.forName(s"simulator.disease.$DISEASE_TYPE")
-      .getDeclaredConstructor()
-      .newInstance()
-      .asInstanceOf[Disease]
-
-    val start = System.currentTimeMillis()
-    val board: Board = new Board(BOARD_WIDTH, BOARD_HEIGHT, LAYERS)
-    val after = System.currentTimeMillis()
-    val time = after - start
-    println(s"Board generation completed in $time milliseconds\n")
-
-    val healthyCount = TOTAL_PEOPLE - INITIAL_INFECTED
-    val random = new Random()
-    val people: Seq[Person] = (0 until healthyCount).map(i => new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), false, board)).toSeq ++
-                              (0 until INITIAL_INFECTED).map(_ => new BasicPerson(random.nextInt(BOARD_WIDTH), random.nextInt(BOARD_HEIGHT), true, board))
-
-    def movement_turn(): Unit = {
-      board.fields.flatten.foreach(field => field.clear())
-      people.foreach(person => person.make_step())
-    }
-
-    def infection_turn(): Unit = {
-      val infectionMap = new InfectionMap(board, disease)
-      infectionMap.calculate()
-
-      for {
-        x <- 0 until BOARD_WIDTH
-        y <- 0 until BOARD_HEIGHT
-      } {
-        val field = board.fields(x)(y)
-        val probability = infectionMap.getProbability(x, y)
-        field.infect_inhabitants(probability)
-      }
-    }
-
-    println(s"Starting simulation with ${people.size} people, $INITIAL_INFECTED infected")
-    println(s"Disease: ${disease.get_name()}, base probability: ${disease.get_base_infection_probability()}")
-    println(s"Max infection distance: ${disease.get_max_infection_distance()} layers\n")
-    
-    for (i <- 1 to TURNS) {
+    for (i <- 1 to simulation.TURNS) {
       println(s"Turn $i:")
-      movement_turn()
-      infection_turn()
+      simulation.turn()
       
-      val infected_count = people.count(_.infected)
-      println(s"  Infected people: $infected_count / ${people.size}")
+      val infected_count = simulation.people.count(_.infected)
+      val dead_count = simulation.people.count(_.dead)
+      println(s"  Infected people: $infected_count")
+      println(s"  Dead people: $dead_count")
     }
     
     println("\n=== Simulation Complete ===")
-    val final_infected = people.count(_.infected)
-    println(s"Final infected: $final_infected / ${people.size}")
+    val final_infected = simulation.people.count(_.infected)
+    val final_dead = simulation.people.count(_.dead)
+    println(s"Final infected: $final_infected")
+    println(s"Final dead: $final_dead")
   }
 }
