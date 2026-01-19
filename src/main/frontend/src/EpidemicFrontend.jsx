@@ -31,6 +31,8 @@ export default function EpidemicFrontend() {
   const [boardSize, setBoardSize] = useState({ width: 10, height: 10 });
   const [hexSize, setHexSize] = useState(24);
   const [history, setHistory] = useState([]);
+  const [simParams, setSimParams] = useState({ width: 10, height: 10, population: 10, initialInfected: 1 });
+  const [simulationStarted, setSimulationStarted] = useState(false);
 
   const animationState = useRef({
     startAgents: [],
@@ -90,7 +92,7 @@ export default function EpidemicFrontend() {
     const pixelWidth = boardSize.width * (hexSize * 1.6) + 60;
     const pixelHeight = boardSize.height * (hexSize * 1.8) + 60;
 
-    if (canvas.width !== Math.floor(pixelWidth * dpr)) {
+    if (canvas.width !== Math.floor(pixelWidth * dpr) || canvas.height !== Math.floor(pixelHeight * dpr)) {
       canvas.width = Math.floor(pixelWidth * dpr);
       canvas.height = Math.floor(pixelHeight * dpr);
       canvas.style.width = pixelWidth + "px";
@@ -181,11 +183,20 @@ export default function EpidemicFrontend() {
 
   useEffect(() => { return () => { if (socketRef.current) socketRef.current.close(); }; }, []);
 
-  const sendCommand = useCallback((cmd) => {
+  const sendCommand = useCallback((cmd, payload = {}) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ command: cmd }));
+      socketRef.current.send(JSON.stringify({ command: cmd, ...payload }));
     }
   }, []);
+
+  useEffect(() => {
+    if (connected && !simulationStarted) {
+      const handler = setTimeout(() => {
+        sendCommand("configure", simParams);
+      }, 500);
+      return () => clearTimeout(handler);
+    }
+  }, [connected, simulationStarted, simParams, sendCommand]);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: "20px", padding: "20px", fontFamily: "Inter, sans-serif", background: "#0b1220", minHeight: "100vh", color: "#e2e8f0" }}>
@@ -198,15 +209,33 @@ export default function EpidemicFrontend() {
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
           <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Control</h3>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={() => sendCommand("start")} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#19d219", color: "white", fontWeight: "bold" }}>Start</button>
+            <button onClick={() => { sendCommand("start"); setSimulationStarted(true); }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#19d219", color: "white", fontWeight: "bold" }}>Start</button>
             <button onClick={() => sendCommand("stop")} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#e0e018", color: "white", fontWeight: "bold" }}>Stop</button>
-            <button onClick={() => sendCommand("reset")} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#d12b2b", color: "white", fontWeight: "bold" }}>Reset</button>
+            <button onClick={() => { sendCommand("reset"); setSimulationStarted(false); }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#d12b2b", color: "white", fontWeight: "bold" }}>Reset</button>
           </div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
           <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Settings</h3>
-          <label style={{ display: "block", marginBottom: "4px", fontSize: "12px" }}>Hex Size: {hexSize}px</label>
-          <input type="range" min="12" max="60" value={hexSize} onChange={e => setHexSize(Number(e.target.value))} style={{ width: "100%" }} />
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "block", marginBottom: "4px", fontSize: "12px" }}>Hex Size: {hexSize}px</label>
+            <input type="range" min="6" max="48" value={hexSize} onChange={e => setHexSize(Number(e.target.value))} style={{ width: "100%" }} />
+          </div>
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "block", marginBottom: "4px", fontSize: "12px" }}>Board Width: {simParams.width}</label>
+            <input type="range" min="8" max="64" value={simParams.width} disabled={simulationStarted} onChange={e => setSimParams(p => ({...p, width: Number(e.target.value)}))} style={{ width: "100%" }} />
+          </div>
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "block", marginBottom: "4px", fontSize: "12px" }}>Board Height: {simParams.height}</label>
+            <input type="range" min="8" max="32" value={simParams.height} disabled={simulationStarted} onChange={e => setSimParams(p => ({...p, height: Number(e.target.value)}))} style={{ width: "100%" }} />
+          </div>
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "block", marginBottom: "4px", fontSize: "12px" }}>Population: {simParams.population}</label>
+            <input type="range" min="2" max="500" value={simParams.population} disabled={simulationStarted} onChange={e => { const val = Number(e.target.value); setSimParams(p => ({...p, population: val, initialInfected: Math.min(p.initialInfected, val) })); }} style={{ width: "100%" }} />
+          </div>
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "block", marginBottom: "4px", fontSize: "12px" }}>Initial Infected: {simParams.initialInfected}</label>
+            <input type="range" min="1" max={simParams.population} value={simParams.initialInfected} disabled={simulationStarted} onChange={e => setSimParams(p => ({...p, initialInfected: Number(e.target.value)}))} style={{ width: "100%" }} />
+          </div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
           <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Statistics</h3>

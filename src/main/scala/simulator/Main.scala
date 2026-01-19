@@ -1,8 +1,16 @@
 package simulator
 
+import com.typesafe.config.ConfigFactory
+
 object Main{
   def main(args: Array[String]): Unit = {
-    val simulation = new Simulation()
+    val config = ConfigFactory.load()
+    val width = config.getInt("simulator.board.width")
+    val height = config.getInt("simulator.board.height")
+    val population = config.getInt("simulator.population.total")
+    val initialInfected = config.getInt("simulator.population.initial_infected")
+
+    val simulation = new Simulation(width, height, population, initialInfected, config)
     val lock = new Object()
     simulation.initPopulation(lock)
     val infected_count = simulation.people.count(_.infected)
