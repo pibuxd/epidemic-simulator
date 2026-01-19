@@ -46,7 +46,7 @@ object SimulatorServer {
     var currentHeight = config.getInt("simulator.board.height")
     var currentPop = config.getInt("simulator.population.total")
     var currentInfected = config.getInt("simulator.population.initial_infected")
-    var simulation = new Simulation(currentWidth, currentHeight, currentPop, currentInfected)
+    var simulation = new Simulation(currentWidth, currentHeight, currentPop, currentInfected, config)
 
     val lock = new Object()
     var isRunning = false
@@ -67,6 +67,12 @@ object SimulatorServer {
       }
     }
 
+    def restartSimulation(): Unit = {
+      isRunning = false
+      simulation = new Simulation(currentWidth, currentHeight, currentPop, currentInfected, config)
+      simulation.initPopulation(lock)
+    }
+
     val incomingSink = Sink.foreach[akka.http.scaladsl.model.ws.Message] {
       case TextMessage.Strict(text) =>
         try {
@@ -77,17 +83,11 @@ object SimulatorServer {
                 cmd.height.foreach(currentHeight = _)
                 cmd.population.foreach(currentPop = _)
                 cmd.initialInfected.foreach(currentInfected = _)
-                isRunning = false
-                simulation = new Simulation(currentWidth, currentHeight, currentPop, currentInfected)
-                simulation.initPopulation(lock)
+                restartSimulation()
               }
             case "start" => isRunning = true
             case "stop" => isRunning = false
-            case "reset" => lock.synchronized {
-                isRunning = false
-                simulation = new Simulation(currentWidth, currentHeight, currentPop, currentInfected)
-                simulation.initPopulation(lock)
-              }
+            case "reset" => lock.synchronized { restartSimulation() }
             case _ =>
           }
         } catch { case _: Exception => }

@@ -2,7 +2,7 @@ package simulator
 
 import simulator.people.*
 import simulator.disease.*
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.Config
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
@@ -11,10 +11,9 @@ class Simulation(
   val BOARD_WIDTH: Int,
   val BOARD_HEIGHT: Int,
   val TOTAL_PEOPLE: Int,
-  val INITIAL_INFECTED: Int
+  val INITIAL_INFECTED: Int,
+  config: Config
 ) {
-  private val config = ConfigFactory.load()
-
   private val LAYERS = config.getInt("simulator.board.layers")
   private val DISEASE_TYPE = config.getString("simulator.disease.type")
   val TURNS: Int = config.getInt("simulator.turns")

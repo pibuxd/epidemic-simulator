@@ -196,7 +196,7 @@ export default function EpidemicFrontend() {
       }, 500);
       return () => clearTimeout(handler);
     }
-  }, [connected, simParams, sendCommand]);
+  }, [connected, simulationStarted, simParams, sendCommand]);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: "20px", padding: "20px", fontFamily: "Inter, sans-serif", background: "#0b1220", minHeight: "100vh", color: "#e2e8f0" }}>

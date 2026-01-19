@@ -10,7 +10,7 @@ object Main{
     val population = config.getInt("simulator.population.total")
     val initialInfected = config.getInt("simulator.population.initial_infected")
 
-    val simulation = new Simulation(width, height, population, initialInfected)
+    val simulation = new Simulation(width, height, population, initialInfected, config)
     val lock = new Object()
     simulation.initPopulation(lock)
     val infected_count = simulation.people.count(_.infected)
