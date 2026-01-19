@@ -7,16 +7,17 @@ import com.typesafe.config.ConfigFactory
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
-class Simulation() {
+class Simulation(
+  val BOARD_WIDTH: Int,
+  val BOARD_HEIGHT: Int,
+  val TOTAL_PEOPLE: Int,
+  val INITIAL_INFECTED: Int
+) {
   private val config = ConfigFactory.load()
 
-  private val BOARD_WIDTH = config.getInt("simulator.board.width")
-  private val BOARD_HEIGHT = config.getInt("simulator.board.height")
   private val LAYERS = config.getInt("simulator.board.layers")
-  val TURNS: Int = config.getInt("simulator.turns")
-  private val TOTAL_PEOPLE = config.getInt("simulator.population.total")
-  private val INITIAL_INFECTED = config.getInt("simulator.population.initial_infected")
   private val DISEASE_TYPE = config.getString("simulator.disease.type")
+  val TURNS: Int = config.getInt("simulator.turns")
 
   val disease: Disease = Class.forName(s"simulator.disease.$DISEASE_TYPE")
     .getDeclaredConstructor()

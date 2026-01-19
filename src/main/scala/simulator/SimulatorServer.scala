@@ -16,12 +16,18 @@ import simulator.disease._
 
 final case class AgentOut(x: Int, y: Int, status: Int)
 final case class StateMsg(`type`: String, width: Int, height: Int, agents: Seq[AgentOut])
-final case class Command(command: String)
+final case class Command(
+  command: String,
+  width: Option[Int] = None,
+  height: Option[Int] = None,
+  population: Option[Int] = None,
+  initialInfected: Option[Int] = None
+)
 
 object JsonProtocol extends DefaultJsonProtocol {
   implicit val agentFmt: RootJsonFormat[AgentOut] = jsonFormat3(AgentOut)
   implicit val stateFmt: RootJsonFormat[StateMsg] = jsonFormat4(StateMsg)
-  implicit val commandFmt: RootJsonFormat[Command] = jsonFormat1(Command)
+  implicit val commandFmt: RootJsonFormat[Command] = jsonFormat5(Command)
 }
 
 object SimulatorServer {
@@ -33,12 +39,14 @@ object SimulatorServer {
     val serverHost = config.getString("simulator.server.host")
     val serverPort = config.getInt("simulator.server.port")
     val TICK_INTERVAL = config.getInt("simulator.tick_interval_ms")
-    val BOARD_WIDTH = config.getInt("simulator.board.width")
-    val BOARD_HEIGHT = config.getInt("simulator.board.height")
 
 
     import JsonProtocol._
-    val simulation = new Simulation()
+    var currentWidth = config.getInt("simulator.board.width")
+    var currentHeight = config.getInt("simulator.board.height")
+    var currentPop = config.getInt("simulator.population.total")
+    var currentInfected = config.getInt("simulator.population.initial_infected")
+    var simulation = new Simulation(currentWidth, currentHeight, currentPop, currentInfected)
 
     val lock = new Object()
     var isRunning = false
@@ -54,7 +62,7 @@ object SimulatorServer {
           val status = if (p.dead) 2 else if (p.infected) 1 else 0
           AgentOut(pos._1, pos._2, status)
         }).toSeq
-        val msg = StateMsg("state", BOARD_WIDTH, BOARD_HEIGHT, agentsOut)
+        val msg = StateMsg("state", simulation.BOARD_WIDTH, simulation.BOARD_HEIGHT, agentsOut)
         TextMessage.Strict(msg.toJson.compactPrint)
       }
     }
@@ -64,11 +72,22 @@ object SimulatorServer {
         try {
           val cmd = text.parseJson.convertTo[Command]
           cmd.command match {
+            case "configure" => lock.synchronized {
+                cmd.width.foreach(currentWidth = _)
+                cmd.height.foreach(currentHeight = _)
+                cmd.population.foreach(currentPop = _)
+                cmd.initialInfected.foreach(currentInfected = _)
+                isRunning = false
+                simulation = new Simulation(currentWidth, currentHeight, currentPop, currentInfected)
+                simulation.initPopulation(lock)
+              }
             case "start" => isRunning = true
             case "stop" => isRunning = false
-            case "reset" =>
-              isRunning = false
-              simulation.initPopulation(lock)
+            case "reset" => lock.synchronized {
+                isRunning = false
+                simulation = new Simulation(currentWidth, currentHeight, currentPop, currentInfected)
+                simulation.initPopulation(lock)
+              }
             case _ =>
           }
         } catch { case _: Exception => }
