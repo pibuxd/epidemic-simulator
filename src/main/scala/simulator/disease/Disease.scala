@@ -3,19 +3,19 @@ package simulator.disease
 import scala.util.Random
 
 trait Disease {
-  def get_name(): String
-  def get_base_infection_probability(): Double
-  def get_recovery_time(): Int
-  def get_mortality_rate(): Double
-  def get_incubation_period(): Int
-  def is_symptomatic_infectious(): Boolean
-  
-  def get_max_infection_distance(): Int = 3
+  val get_name: String
+  val get_base_infection_probability: Double
+  val get_recovery_time: Int
+  val get_mortality_rate: Double
+  val get_incubation_period: Int
+  val is_symptomatic_infectious: Boolean
+
+  val get_max_infection_distance: Int = 3
   
   def get_infection_probability_by_layer(layer: Int): Double = {
-    if (layer > get_max_infection_distance()) return 0.0
+    if (layer > get_max_infection_distance) return 0.0
     
-    val base = get_base_infection_probability()
+    val base = get_base_infection_probability
     base * (layer match {
       case 0 => 1.0
       case 1 => 0.5

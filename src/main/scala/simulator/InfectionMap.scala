@@ -28,7 +28,7 @@ class InfectionMap(board: Board, disease: Disease) {
   }
   
   private def spreadInfectionFrom(sourceX: Int, sourceY: Int, infectedCount: Int): Unit = {
-    val maxDistance = disease.get_max_infection_distance()
+    val maxDistance = disease.get_max_infection_distance
     val sourceField = board.fields(sourceX)(sourceY)
     
     for (distance <- 0 to maxDistance) {

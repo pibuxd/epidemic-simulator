@@ -16,10 +16,10 @@ trait Person {
     if (dead) return
     if (infected) {
       days_infected += 1
-      if (scala.util.Random.nextDouble() < disease.get_mortality_rate()) {
+      if (scala.util.Random.nextDouble() < disease.get_mortality_rate) {
         dead = true
         infected = false
-      } else if (days_infected >= disease.get_recovery_time()) {
+      } else if (days_infected >= disease.get_recovery_time) {
         infected = false
         days_infected = 0
       }
