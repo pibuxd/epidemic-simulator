@@ -24,6 +24,7 @@ export default function EpidemicFrontend() {
   const chartRef = useRef(null);
   const socketRef = useRef(null);
   const reqRef = useRef(null);
+  const isRunningRef = useRef(false);
 
   const [wsUrl, setWsUrl] = useState("ws://localhost:9000/ws");
   const [connected, setConnected] = useState(false);
@@ -68,11 +69,13 @@ export default function EpidemicFrontend() {
 
         state.startTime = now;
 
-        const infectedCount = newAgents.filter(a => a.status === 1).length;
-        setHistory(prev => {
-          const newHist = [...prev, { t: Date.now(), inf: infectedCount }];
-          return newHist.slice(-200);
-        });
+        if (isRunningRef.current) {
+          const infectedCount = newAgents.filter(a => a.status === 1).length;
+          setHistory(prev => {
+            const newHist = [...prev, { t: Date.now(), inf: infectedCount }];
+            return newHist.slice(-200);
+          });
+        }
       }
     } catch (e) {
       console.error(e);
@@ -209,9 +212,9 @@ export default function EpidemicFrontend() {
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
           <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Control</h3>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={() => { sendCommand("start"); setSimulationStarted(true); }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#19d219", color: "white", fontWeight: "bold" }}>Start</button>
-            <button onClick={() => sendCommand("stop")} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#e0e018", color: "white", fontWeight: "bold" }}>Stop</button>
-            <button onClick={() => { sendCommand("reset"); setSimulationStarted(false); }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#d12b2b", color: "white", fontWeight: "bold" }}>Reset</button>
+            <button onClick={() => { sendCommand("start"); setSimulationStarted(true); isRunningRef.current = true; }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#19d219", color: "white", fontWeight: "bold" }}>Start</button>
+            <button onClick={() => { sendCommand("stop"); isRunningRef.current = false; }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#e0e018", color: "white", fontWeight: "bold" }}>Stop</button>
+            <button onClick={() => { sendCommand("reset"); setSimulationStarted(false); setHistory([]); isRunningRef.current = false; }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#d12b2b", color: "white", fontWeight: "bold" }}>Reset</button>
           </div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>

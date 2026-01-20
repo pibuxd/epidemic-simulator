@@ -50,6 +50,7 @@ object SimulatorServer {
 
     val lock = new Object()
     var isRunning = false
+    var needsUpdate = true
     simulation.initPopulation(lock)
 
     val tickSource = Source.tick(0.millis, TICK_INTERVAL.millis, ()).map { _ =>
@@ -57,20 +58,26 @@ object SimulatorServer {
         if (isRunning) {
           simulation.turn()
         }
-        val agentsOut = simulation.people.map(p => {
-          val pos = p.get_position()
-          val status = if (p.dead) 2 else if (p.infected) 1 else 0
-          AgentOut(pos._1, pos._2, status)
-        }).toSeq
-        val msg = StateMsg("state", simulation.BOARD_WIDTH, simulation.BOARD_HEIGHT, agentsOut)
-        TextMessage.Strict(msg.toJson.compactPrint)
+        if (isRunning || needsUpdate) {
+          needsUpdate = false
+          val agentsOut = simulation.people.map(p => {
+            val pos = p.get_position()
+            val status = if (p.dead) 2 else if (p.infected) 1 else 0
+            AgentOut(pos._1, pos._2, status)
+          }).toSeq
+          val msg = StateMsg("state", simulation.BOARD_WIDTH, simulation.BOARD_HEIGHT, agentsOut)
+          Some(TextMessage.Strict(msg.toJson.compactPrint))
+        } else {
+          None
+        }
       }
-    }
+    }.collect { case Some(msg) => msg }
 
     def restartSimulation(): Unit = {
       isRunning = false
       simulation = new Simulation(currentWidth, currentHeight, currentPop, currentInfected, config)
       simulation.initPopulation(lock)
+      needsUpdate = true
     }
 
     val incomingSink = Sink.foreach[akka.http.scaladsl.model.ws.Message] {
@@ -85,8 +92,8 @@ object SimulatorServer {
                 cmd.initialInfected.foreach(currentInfected = _)
                 restartSimulation()
               }
-            case "start" => isRunning = true
-            case "stop" => isRunning = false
+            case "start" => lock.synchronized { isRunning = true }
+            case "stop" => lock.synchronized { isRunning = false }
             case "reset" => lock.synchronized { restartSimulation() }
             case _ =>
           }
