@@ -71,8 +71,10 @@ export default function EpidemicFrontend() {
 
         if (isRunningRef.current) {
           const infectedCount = newAgents.filter(a => a.status === 1).length;
+          const deadCount = newAgents.filter(a => a.status === 2).length;
+          const healthyCount = newAgents.filter(a => a.status === 0).length;
           setHistory(prev => {
-            const newHist = [...prev, { t: Date.now(), inf: infectedCount }];
+            const newHist = [...prev, { t: Date.now(), inf: infectedCount, dead: deadCount, healthy: healthyCount }];
             return newHist.slice(-200);
           });
         }
@@ -159,15 +161,22 @@ export default function EpidemicFrontend() {
     ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fillRect(0, 0, W, H);
 
     if (history.length < 2) return;
-    const maxVal = Math.max(...history.map(h => h.inf), 10);
-    ctx.beginPath(); ctx.strokeStyle = "#f43f5e"; ctx.lineWidth = 2;
-    for (let i = 0; i < history.length; i++) {
-      const point = history[i];
-      const x = (i / (history.length - 1)) * W;
-      const y = H - (point.inf / maxVal) * (H - 10);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
+    const maxVal = Math.max(...history.map(h => Math.max(h.inf, h.dead, h.healthy)), 10);
+
+    const drawLine = (key, color) => {
+      ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2;
+      for (let i = 0; i < history.length; i++) {
+        const point = history[i];
+        const x = (i / (history.length - 1)) * W;
+        const y = H - (point[key] / maxVal) * (H - 10);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    };
+
+    drawLine('healthy', '#3b82f6');
+    drawLine('dead', '#94a3b8');
+    drawLine('inf', '#f43f5e');
   }, [history]);
 
   const connect = useCallback(() => {
@@ -214,7 +223,9 @@ export default function EpidemicFrontend() {
               setSimulationStarted(true); 
               const currentAgents = animationState.current.targetAgents;
               const infectedCount = currentAgents.filter(a => a.status === 1).length;
-              setHistory([{ t: Date.now(), inf: infectedCount }]);
+              const deadCount = currentAgents.filter(a => a.status === 2).length;
+              const healthyCount = currentAgents.filter(a => a.status === 0).length;
+              setHistory([{ t: Date.now(), inf: infectedCount, dead: deadCount, healthy: healthyCount }]);
               isRunningRef.current = true; 
             }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#19d219", color: "white", fontWeight: "bold" }}>Start</button>
             <button onClick={() => { 
@@ -255,15 +266,23 @@ export default function EpidemicFrontend() {
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
             <h3 style={{ margin: "0", fontSize: "16px", color: "#94a3b8" }}>Statistics</h3>
-            <span style={{ color: "#f43f5e", fontWeight: "bold", fontSize: "14px" }}>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", fontSize: "12px", fontWeight: "bold" }}>
+            <span style={{ color: "#3b82f6" }}>
+              Healthy: {history.length > 0 ? history[history.length - 1].healthy : 0}
+            </span>
+            <span style={{ color: "#f43f5e" }}>
               Infected: {history.length > 0 ? history[history.length - 1].inf : 0}
+            </span>
+            <span style={{ color: "#94a3b8" }}>
+              Dead: {history.length > 0 ? history[history.length - 1].dead : 0}
             </span>
           </div>
           <canvas ref={chartRef} style={{ width: "100%", height: "120px", borderRadius: "4px" }} />
         </div>
       </div>
       <div style={{ background: "#1e293b", borderRadius: "8px", overflow: "hidden", display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)" }}>
-        <canvas ref={canvasRef} />
+        <canvas ref={canvasRef} style={{ borderRadius: "12px" }}/>
       </div>
     </div>
   );
