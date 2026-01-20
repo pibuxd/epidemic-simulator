@@ -16,8 +16,8 @@ object Main{
     val infected_count = simulation.people.count(_.infected)
 
     println(s"Starting simulation with ${simulation.people.size} people, $infected_count infected")
-    println(s"Disease: ${simulation.disease.get_name()}, base probability: ${simulation.disease.get_base_infection_probability()}")
-    println(s"Max infection distance: ${simulation.disease.get_max_infection_distance()} layers\n")
+    println(s"Disease: ${simulation.disease.get_name}, base probability: ${simulation.disease.get_base_infection_probability}")
+    println(s"Max infection distance: ${simulation.disease.get_max_infection_distance} layers\n")
     
     for (i <- 1 to simulation.TURNS) {
       println(s"Turn $i:")
