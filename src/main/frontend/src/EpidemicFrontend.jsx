@@ -14,8 +14,8 @@ const getOffset = (id, size) => {
 function hexToPixel(col, row, size) {
   const hexWidth = 2 * size;
   const hexHeight = Math.sqrt(3) * size;
-  const x = col * (hexWidth * 0.75) + 30;
-  const y = row * hexHeight + (col % 2 === 1 ? hexHeight * 0.5 : 0) + 30;
+  const x = col * (hexWidth * 0.75) + size + 10;
+  const y = row * hexHeight + (col % 2 === 1 ? hexHeight * 0.5 : 0) + (hexHeight / 2) + 10;
   return { x, y };
 }
 
@@ -92,8 +92,10 @@ export default function EpidemicFrontend() {
     let progress = (time - startTime) / duration;
     if (progress > 1) progress = 1;
 
-    const pixelWidth = boardSize.width * (hexSize * 1.6) + 60;
-    const pixelHeight = boardSize.height * (hexSize * 1.8) + 60;
+    const hexW = 2 * hexSize;
+    const hexH = Math.sqrt(3) * hexSize;
+    const pixelWidth = (boardSize.width - 1) * (hexW * 0.75) + 2 * hexSize + 20;
+    const pixelHeight = boardSize.height * hexH + (boardSize.width > 1 ? 0.5 * hexH : 0) + 20;
 
     if (canvas.width !== Math.floor(pixelWidth * dpr) || canvas.height !== Math.floor(pixelHeight * dpr)) {
       canvas.width = Math.floor(pixelWidth * dpr);
