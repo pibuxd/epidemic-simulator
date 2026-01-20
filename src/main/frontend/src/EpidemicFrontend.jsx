@@ -219,14 +219,9 @@ export default function EpidemicFrontend() {
           <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Control</h3>
           <div style={{ display: "flex", gap: "8px" }}>
             <button onClick={() => { 
-              sendCommand("start"); 
-              setSimulationStarted(true); 
-              const currentAgents = animationState.current.targetAgents;
-              const infectedCount = currentAgents.filter(a => a.status === 1).length;
-              const deadCount = currentAgents.filter(a => a.status === 2).length;
-              const healthyCount = currentAgents.filter(a => a.status === 0).length;
-              setHistory([{ t: Date.now(), inf: infectedCount, dead: deadCount, healthy: healthyCount }]);
-              isRunningRef.current = true; 
+              sendCommand("start");
+              setSimulationStarted(true);
+              isRunningRef.current = true;
             }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#19d219", color: "white", fontWeight: "bold" }}>Start</button>
             <button onClick={() => { 
               sendCommand("stop"); 
