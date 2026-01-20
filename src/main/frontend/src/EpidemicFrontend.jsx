@@ -108,27 +108,27 @@ export default function EpidemicFrontend() {
     ctx.fillStyle = "#0f172a";
     ctx.fillRect(0, 0, pixelWidth, pixelHeight);
 
-    targetAgents.forEach((targetAgent, index) => {
+    const agentsToDraw = targetAgents.map((targetAgent, index) => {
       const startAgent = startAgents[index] || targetAgent;
-
       const startPos = hexToPixel(startAgent.x, startAgent.y, hexSize);
       const targetPos = hexToPixel(targetAgent.x, targetAgent.y, hexSize);
-
       const currentX = lerp(startPos.x, targetPos.x, progress);
       const currentY = lerp(startPos.y, targetPos.y, progress);
-
       const offset = getOffset(targetAgent.id, hexSize);
+      return { x: currentX + offset.x, y: currentY + offset.y, status: targetAgent.status };
+    });
 
-      const finalX = currentX + offset.x;
-      const finalY = currentY + offset.y;
+    // Draw dead chooms first so they're in the back.
+    agentsToDraw.sort((a, b) => (a.status === 2 ? -1 : 1) - (b.status === 2 ? -1 : 1));
 
+    agentsToDraw.forEach(agent => {
       ctx.beginPath();
-      ctx.arc(finalX, finalY, hexSize * 0.25, 0, 2 * Math.PI);
-
-      if (targetAgent.status === 2) {
+      ctx.arc(agent.x, agent.y, hexSize * 0.25, 0, 2 * Math.PI);
+      if (agent.status === 2) {
         ctx.fillStyle = "#000000";
-        ctx.shadowBlur = 0;
-      } else if (targetAgent.status === 1) {
+        ctx.shadowColor = "#010101";
+        ctx.shadowBlur = 3;
+      } else if (agent.status === 1) {
         ctx.fillStyle = "#f43f5e";
         ctx.shadowColor = "#f43f5e";
         ctx.shadowBlur = 15;
@@ -136,7 +136,6 @@ export default function EpidemicFrontend() {
         ctx.fillStyle = "#3b82f6";
         ctx.shadowBlur = 0;
       }
-
       ctx.fill();
     });
 
