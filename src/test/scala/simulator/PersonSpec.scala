@@ -7,16 +7,16 @@ import simulator.disease._
 import simulator.fields._
 
 class TestDisease(rec: Int, mort: Double) extends Disease {
-  override def get_name(): String = "TestVid"
-  override def get_base_infection_probability(): Double = 1.0
-  override def get_recovery_time(): Int = rec
-  override def get_mortality_rate(): Double = mort
+  override val get_name: String = "TestVid"
+  override val get_base_infection_probability: Double = 1.0
+  override val get_recovery_time: Int = rec
+  override val get_mortality_rate: Double = mort
   
-  override def get_incubation_period(): Int = 0 
+  override val get_incubation_period: Int = 0 
   
-  override def is_symptomatic_infectious(): Boolean = true 
+  override val is_symptomatic_infectious: Boolean = true 
   
-  override def get_max_infection_distance(): Int = 1
+  override val get_max_infection_distance: Int = 1
 }
 
 class PersonSpec extends AnyFlatSpec with Matchers {
