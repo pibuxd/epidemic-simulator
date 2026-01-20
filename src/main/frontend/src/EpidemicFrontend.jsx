@@ -151,9 +151,8 @@ export default function EpidemicFrontend() {
     if (!c) return;
     const ctx = c.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
-    const W = 270; const H = 120;
+    const W = c.clientWidth; const H = c.clientHeight;
     c.width = W * dpr; c.height = H * dpr;
-    c.style.width = W + "px"; c.style.height = H + "px";
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = "rgba(255,255,255,0.05)"; ctx.fillRect(0, 0, W, H);
@@ -168,9 +167,6 @@ export default function EpidemicFrontend() {
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.stroke();
-    const last = history[history.length - 1];
-    ctx.fillStyle = "#f43f5e"; ctx.font = "bold 14px sans-serif";
-    ctx.fillText(`Infected: ${last ? last.inf : 0}`, 10, 20);
   }, [history]);
 
   const connect = useCallback(() => {
@@ -202,8 +198,8 @@ export default function EpidemicFrontend() {
   }, [connected, simulationStarted, simParams, sendCommand]);
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: "20px", padding: "20px", fontFamily: "Inter, sans-serif", background: "#0b1220", minHeight: "100vh", color: "#e2e8f0" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gridTemplateRows: "1fr", gap: "20px", padding: "20px", fontFamily: "Inter, sans-serif", background: "#0b1220", height: "100vh", boxSizing: "border-box", overflow: "hidden", color: "#e2e8f0" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px", overflowY: "auto", paddingRight: "8px" }}>
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
           <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Connection</h3>
           <input value={wsUrl} onChange={e => setWsUrl(e.target.value)} style={{ width: "93%", padding: "8px", marginBottom: "8px", background: "#1e293b", border: "1px solid #334155", color: "white", borderRadius: "4px" }} />
@@ -212,9 +208,24 @@ export default function EpidemicFrontend() {
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
           <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Control</h3>
           <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={() => { sendCommand("start"); setSimulationStarted(true); isRunningRef.current = true; }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#19d219", color: "white", fontWeight: "bold" }}>Start</button>
-            <button onClick={() => { sendCommand("stop"); isRunningRef.current = false; }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#e0e018", color: "white", fontWeight: "bold" }}>Stop</button>
-            <button onClick={() => { sendCommand("reset"); setSimulationStarted(false); setHistory([]); isRunningRef.current = false; }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#d12b2b", color: "white", fontWeight: "bold" }}>Reset</button>
+            <button onClick={() => { 
+              sendCommand("start"); 
+              setSimulationStarted(true); 
+              const currentAgents = animationState.current.targetAgents;
+              const infectedCount = currentAgents.filter(a => a.status === 1).length;
+              setHistory([{ t: Date.now(), inf: infectedCount }]);
+              isRunningRef.current = true; 
+            }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#19d219", color: "white", fontWeight: "bold" }}>Start</button>
+            <button onClick={() => { 
+              sendCommand("stop"); 
+              isRunningRef.current = false; 
+            }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#e0e018", color: "white", fontWeight: "bold" }}>Stop</button>
+            <button onClick={() => { 
+              sendCommand("reset"); 
+              setSimulationStarted(false); 
+              setHistory([]); 
+              isRunningRef.current = false; 
+            }} style={{ flex: 1, padding: "8px", borderRadius: "4px", border: "none", cursor: "pointer", background: "#d12b2b", color: "white", fontWeight: "bold" }}>Reset</button>
           </div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
@@ -241,7 +252,12 @@ export default function EpidemicFrontend() {
           </div>
         </div>
         <div style={{ background: "rgba(255,255,255,0.05)", padding: "16px", borderRadius: "8px" }}>
-          <h3 style={{ margin: "0 0 12px 0", fontSize: "16px", color: "#94a3b8" }}>Statistics</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <h3 style={{ margin: "0", fontSize: "16px", color: "#94a3b8" }}>Statistics</h3>
+            <span style={{ color: "#f43f5e", fontWeight: "bold", fontSize: "14px" }}>
+              Infected: {history.length > 0 ? history[history.length - 1].inf : 0}
+            </span>
+          </div>
           <canvas ref={chartRef} style={{ width: "100%", height: "120px", borderRadius: "4px" }} />
         </div>
       </div>
